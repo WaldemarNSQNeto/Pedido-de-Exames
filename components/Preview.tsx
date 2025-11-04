@@ -3,12 +3,21 @@ import { FormData, RequestDetails } from '../types.ts';
 
 interface PreviewProps {
   formData: FormData;
-  showSecondCopy: boolean;
-  isSecondRequestActive: boolean;
-  secondRequestData: RequestDetails;
+  additionalRequests: RequestDetails[];
 }
 
-const DocumentColumn: React.FC<{ formData: FormData }> = ({ formData }) => {
+const parseExams = (text: string): string[] => {
+  if (!text.trim()) return [];
+  // Substitui múltiplos delimitadores por uma nova linha
+  const normalizedText = text.replace(/[,;.]/g, '\n');
+  // Divide pela nova linha, remove espaços extras e filtra linhas vazias
+  return normalizedText
+    .split('\n')
+    .map(exam => exam.trim())
+    .filter(exam => exam !== '');
+};
+
+const DocumentColumn: React.FC<{ requestData: FormData }> = ({ requestData }) => {
     return (
         <div className="flex flex-col border border-black p-2 h-full leading-tight font-sans">
             <header className="border-b border-black mb-2 flex justify-center items-center" style={{ minHeight: '4.5rem' }}>
@@ -26,22 +35,22 @@ const DocumentColumn: React.FC<{ formData: FormData }> = ({ formData }) => {
             <section className="pb-1 text-sm">
                 <div className="flex items-end">
                     <span className="font-bold">Nome do paciente:</span>
-                    <span className={`flex-1 ml-1 min-h-[1em] ${!formData.patientName ? 'border-b border-black' : ''}`}>{formData.patientName || ' '}</span>
+                    <span className={`flex-1 ml-1 min-h-[1em] ${!requestData.patientName ? 'border-b border-black' : ''}`}>{requestData.patientName || ' '}</span>
                 </div>
                 <div className="flex items-end mt-1">
                     <span className="font-bold">Data de nascimento:</span>
-                    {formData.dob ? (
-                      <span className="ml-1 min-h-[1em]">{formData.dob}</span>
+                    {requestData.dob ? (
+                      <span className="ml-1 min-h-[1em]">{requestData.dob}</span>
                     ) : (
                       <span className="ml-1 min-h-[1em]">___ /___ /_______</span>
                     )}
-                    <span className="font-bold ml-4">Nome da mãe:</span>
-                    <span className={`flex-1 ml-1 min-h-[1em] ${!formData.motherName ? 'border-b border-black' : ''}`}>{formData.motherName || ' '}</span>
+                    <span className="font-bold ml-4 mr-1">Sexo:</span>
+                    <span>( {requestData.sex === 'Masculino' ? <span className="font-bold">X</span> : ' '} ) Masculino</span>
+                    <span className="ml-4">( {requestData.sex === 'Feminino' ? <span className="font-bold">X</span> : ' '} ) Feminino</span>
                 </div>
                 <div className="flex items-end mt-1">
-                    <span className="font-bold mr-1">Sexo:</span>
-                    <span>( {formData.sex === 'Masculino' ? <span className="font-bold">X</span> : ' '} ) Masculino</span>
-                    <span className="ml-4">( {formData.sex === 'Feminino' ? <span className="font-bold">X</span> : ' '} ) Feminino</span>
+                    <span className="font-bold">Nome da mãe:</span>
+                    <span className={`flex-1 ml-1 min-h-[1em] ${!requestData.motherName ? 'border-b border-black' : ''}`}>{requestData.motherName || ' '}</span>
                 </div>
             </section>
             
@@ -49,21 +58,19 @@ const DocumentColumn: React.FC<{ formData: FormData }> = ({ formData }) => {
                 <div className="font-bold bg-gray-200 p-1 flex items-center justify-center border-b border-r border-black">Prontuário ou Nº de Atendimento</div>
                 <div className="font-bold bg-gray-200 p-1 flex items-center justify-center border-b border-r border-black">Setor de Origem</div>
                 <div className="font-bold bg-gray-200 p-1 flex items-center justify-center border-b border-r border-black">Nº do Leito de <br /> Internação</div>
-                <div className="min-h-[2em] p-1 flex items-center justify-center border-b border-r border-black">{formData.recordNumber || ' '}</div>
-                <div className="min-h-[2em] p-1 flex items-center justify-center border-b border-r border-black">{formData.originSector || ' '}</div>
-                <div className="min-h-[2em] p-1 flex items-center justify-center border-b border-r border-black">{formData.bedNumber || ' '}</div>
+                <div className="min-h-[2em] p-1 flex items-center justify-center border-b border-r border-black">{requestData.recordNumber || ' '}</div>
+                <div className="min-h-[2em] p-1 flex items-center justify-center border-b border-r border-black">{requestData.originSector || ' '}</div>
+                <div className="min-h-[2em] p-1 flex items-center justify-center border-b border-r border-black">{requestData.bedNumber || ' '}</div>
             </section>
 
             <section className="flex-grow text-sm">
                 <h2 className="font-bold">Exames Solicitados:</h2>
                 <div className="min-h-[12em] p-1">
-                    {formData.requestedExams && formData.requestedExams.trim() !== '' ? (
-                        formData.requestedExams
-                            .split('\n')
-                            .filter(line => line.trim() !== '')
+                    {requestData.requestedExams && requestData.requestedExams.trim() !== '' ? (
+                        parseExams(requestData.requestedExams)
                             .map((line, index) => (
                                 <div key={index}>
-                                    <span className="font-bold">{`${index + 1}. `}</span>{line.trim()}
+                                    <span className="font-bold">{`${index + 1}. `}</span>{line}
                                 </div>
                             ))
                     ) : (
@@ -75,12 +82,12 @@ const DocumentColumn: React.FC<{ formData: FormData }> = ({ formData }) => {
             <section className="text-sm mt-2 mb-2">
                 <div className="flex items-baseline">
                     <span className="font-bold">Indicação Clínica:</span>
-                    <span className={`flex-1 ml-1 min-h-[1em] whitespace-pre-wrap break-words ${!formData.clinicalIndication ? 'border-b border-black' : ''}`}>{formData.clinicalIndication || ' '}</span>
+                    <span className={`flex-1 ml-1 min-h-[1em] whitespace-pre-wrap break-words ${!requestData.clinicalIndication ? 'border-b border-black' : ''}`}>{requestData.clinicalIndication || ' '}</span>
                 </div>
                 <div className="flex items-end mt-2">
                     <span className="font-bold">Data da Solicitação:</span>
-                    {formData.requestDate ? (
-                      <span className="ml-1 min-h-[1em]">{formData.requestDate}</span>
+                    {requestData.requestDate ? (
+                      <span className="ml-1 min-h-[1em]">{requestData.requestDate}</span>
                     ) : (
                       <span className="ml-1 min-h-[1em]">___ /___ /_______</span>
                     )}
@@ -94,35 +101,41 @@ const DocumentColumn: React.FC<{ formData: FormData }> = ({ formData }) => {
     );
 };
 
+const Preview: React.FC<PreviewProps> = ({ formData, additionalRequests }) => {
+    
+    const allRequests: RequestDetails[] = [
+        {
+            requestedExams: formData.requestedExams,
+            clinicalIndication: formData.clinicalIndication,
+            requestDate: formData.requestDate
+        },
+        ...additionalRequests
+    ];
 
-const Preview: React.FC<PreviewProps> = ({ formData, showSecondCopy, isSecondRequestActive, secondRequestData }) => {
-  
-  const secondRequestFormData: FormData = {
-      ...formData,
-      ...secondRequestData,
-  };
+    const pages = [];
+    for (let i = 0; i < allRequests.length; i += 2) {
+        pages.push(allRequests.slice(i, i + 2));
+    }
 
-  return (
-    <div id="printable-area" className="bg-white text-black p-4 mx-auto w-full max-w-[297mm] aspect-[297/210] shadow-2xl">
-        <div className="flex justify-start items-stretch gap-4 h-full">
-            <div className="w-[calc(50%-0.5rem)] h-full">
-                <DocumentColumn formData={formData} />
-            </div>
-            
-            {isSecondRequestActive && (
-                 <div className="w-[calc(50%-0.5rem)] h-full">
-                    <DocumentColumn formData={secondRequestFormData} />
+    return (
+        <div id="printable-container">
+            {pages.map((pageRequests, pageIndex) => (
+                <div key={pageIndex} className="printable-page bg-white text-black p-4 mx-auto w-full max-w-[297mm] aspect-[297/210] shadow-2xl">
+                    <div className="flex justify-start items-stretch gap-4 h-full">
+                        <div className="w-[calc(50%-0.5rem)] h-full">
+                            <DocumentColumn requestData={{...formData, ...pageRequests[0]}} />
+                        </div>
+                        
+                        {pageRequests[1] && (
+                            <div className="w-[calc(50%-0.5rem)] h-full">
+                                <DocumentColumn requestData={{...formData, ...pageRequests[1]}} />
+                            </div>
+                        )}
+                    </div>
                 </div>
-            )}
-
-            {!isSecondRequestActive && showSecondCopy && (
-                <div className="w-[calc(50%-0.5rem)] h-full">
-                    <DocumentColumn formData={formData} />
-                </div>
-            )}
+            ))}
         </div>
-    </div>
-  );
+    );
 };
 
 export default Preview;
