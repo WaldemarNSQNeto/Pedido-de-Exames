@@ -1,0 +1,5 @@
+{
+  "name": "Solicitação de Pedido de Exames",
+  "description": "Uma aplicação para automatizar a criação e impressão de pedidos de exames médicos no formato do Hospital das Clínicas da UFG.",
+  "requestFramePermissions": []
+}
